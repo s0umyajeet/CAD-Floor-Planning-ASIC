@@ -26,9 +26,9 @@ GraphicEngine::GraphicEngine() {
 	_is_running = true;
 	_is_running = true;
 	_window = NULL;
-	_surface  = NULL;
-	_texture  = NULL;
-	_renderer = NULL;
+	//_surface  = NULL;
+	//_texture  = NULL;
+	//_renderer = NULL;
 }
 
 GraphicEngine::~GraphicEngine() {}
@@ -103,7 +103,7 @@ bool GraphicEngine::init(window_props editor) {
 
 			// Setup Dear ImGui style
 			ImGui::StyleColorsDark();
-
+			
 			// Setup Platform/Renderer backends
 			ImGui_ImplSDL2_InitForOpenGL(_window, _gl_context);
 			ImGui_ImplOpenGL3_Init(glsl_version);
@@ -120,7 +120,7 @@ bool GraphicEngine::init(window_props editor) {
 
 	std::cout << "Init successful..." << std::endl;
 	//Everything initialized successully, start the main loop
-	_is_running = true;
+	_is_running = true;       
 	return true;
 }
 
@@ -157,12 +157,16 @@ void GraphicEngine::drawGUI() {
 				ImGui::TableSetupColumn("Pos X");
 				ImGui::TableSetupColumn("Pos Y");
 				ImGui::TableHeadersRow();
+
+				// for creating dummy strings and ints
+				createDummyElements(row_count * 3, row_count * 2);
 				
 				std::string cmd;
 				std::string shape_name;
 				std::string ref_shape;
 				int pos_x = 0, pos_y = 0;
 
+				int dummyStringCounter = 0, dummyIntCounter = 0;
 				for (int row = 0; row < row_count; row++)
 				{
 					ImGui::TableNextRow();
@@ -173,28 +177,33 @@ void GraphicEngine::drawGUI() {
 						switch (column) {
 						case 0:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &cmd);
+							ImGui::InputText("##label", &dummyStrings[dummyStringCounter]);
 							ImGui::PopID();
+							dummyStringCounter++;
 							break;
 						case 1:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &shape_name);
+							ImGui::InputText("##label", &dummyStrings[dummyStringCounter]);
 							ImGui::PopID();
+							dummyStringCounter++;
 							break;
 						case 2:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &ref_shape);
+							ImGui::InputText("##label", &dummyStrings[dummyStringCounter]);
 							ImGui::PopID();
+							dummyStringCounter++;
 							break;
 						case 3:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputInt("##label", &pos_x);
+							ImGui::InputInt("##label", &dummyNums[dummyIntCounter]);
 							ImGui::PopID();
+							dummyIntCounter++;
 							break;
 						case 4:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputInt("##label", &pos_y);
+							ImGui::InputInt("##label", &dummyNums[dummyIntCounter]);
 							ImGui::PopID();
+							dummyIntCounter++;
 							break;
 						}
 					}
@@ -226,8 +235,10 @@ void GraphicEngine::drawGUI() {
 		static int counter = 0;
 
 		ImGui::Begin("Display options");                          
-		ImGui::SliderFloat("Zoom", &zoom, 0.0f, 1.0f);            
-		ImGui::ColorEdit3("BG color", (float*)&clear_color); 
+		ImGui::SliderFloat("Zoom", &this->_props.zoom, 0.0f, 2.0f);            
+		ImGui::ColorEdit3("Visualizer BG ", (float*)&clear_color); 
+		ImGui::ShowStyleSelector("Colors##Selector");
+		
 		/*
 		if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
 			counter++;
@@ -239,6 +250,7 @@ void GraphicEngine::drawGUI() {
 		ImGui::End();
 	}
 
+	//Visualizer Window
 	{
 		auto visualizer_window_flags = ImGuiWindowFlags_AlwaysVerticalScrollbar | 
 				ImGuiWindowFlags_AlwaysHorizontalScrollbar;
@@ -249,10 +261,42 @@ void GraphicEngine::drawGUI() {
 		
 		//drawShape(draw_list);
 		for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
-			drawShape(x.second, draw_list);
+			drawShape(x.second, draw_list, this->_props);
 		}
 	
 		ImGui::End();
+	}
+
+	//Legend
+	if (this->_props.legend)
+	{
+		ImGui::Begin("Another Window", &this->_props.legend);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+
+		for (auto x : _current_draw_list) {
+			//ImGui::TextColored(, "Shape 1");
+
+		} 
+		
+		if (ImGui::Button("Close"))
+		this->_props.legend = false;
+		ImGui::End();
+	}
+
+	
+}
+
+void GraphicEngine::createDummyElements(unsigned int numberOfStrings, unsigned int numberOfInts)
+{
+	unsigned int totalStrings = row_count * 3;
+	unsigned int totalInts = row_count * 2;
+
+	for (int elem = 0; elem < totalStrings; elem++)
+	{
+		dummyStrings.push_back(std::string(""));
+	}
+	for (int elem = 0; elem < totalInts; elem++)
+	{
+		dummyNums.push_back(int());
 	}
 }
 
@@ -281,6 +325,7 @@ void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props 
 	float x = p.x + props.moveX;
 	float y = p.y + props.moveY;
 
+	/*
 	draw_list->AddLine(ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom), 
 			ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom), IM_COL32(0, 255, 0, 255), 0.0f);
 	draw_list->AddLine(ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom), 
@@ -291,6 +336,20 @@ void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props 
 			ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom), IM_COL32(0, 255, 0, 255), 0.0f);
 	draw_list->AddLine(ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom), 
 			ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom), IM_COL32(0, 255, 0, 255), 0.0f);
+	*/
+
+	ImVec4 color = drawable.getColor();
+
+	draw_list->AddLine(ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom),
+		ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
+	draw_list->AddLine(ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom),
+		ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
+	draw_list->AddLine(ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom),
+		ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
+	draw_list->AddLine(ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom),
+		ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
+	draw_list->AddLine(ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom),
+		ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
 
 }
 

@@ -35,7 +35,7 @@ class GraphicEngine {
 public:
 	static GraphicEngine& get();
 	static bool firstParse;
-	inline SDL_Renderer* getRenderer() { return this->_renderer; }
+	//inline SDL_Renderer* getRenderer() { return this->_renderer; }
 	bool init(window_props editor);
 
 	void update();
@@ -49,19 +49,25 @@ public:
 
 	static int col_count;
 	static int row_count;
+	std::vector<std::string>  _current_draw_list;
+
+	// method to create dummy elements to reference inside InputText() and InputInt()
+	void createDummyElements(unsigned int numberOfStrings, unsigned int numberOfInts);
 
 private:
 	GraphicEngine();
 	~GraphicEngine();
 	ImGuiIO myio;
 
-	SDL_Window*	_window;
-	SDL_Surface*	_surface;
-	SDL_Texture*	_texture;
-	SDL_Renderer*	_renderer;
-	SDL_GLContext   _gl_context;
-	window_props	_window_props;
-	bool		_is_running;
-	int		_screen_width;
-	int		_screen_height;
+	SDL_Window*	   _window;
+	vis_props	   _props;
+	SDL_GLContext      _gl_context;
+	window_props	   _window_props;
+	bool		   _is_running;
+	int		   _screen_width;
+	int		   _screen_height;
+
+	std::vector<std::string> dummyStrings;
+	std::vector<int> dummyNums;
+	
 };
