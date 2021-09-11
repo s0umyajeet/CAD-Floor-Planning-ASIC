@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <sstream>
+#include <imgui.h>
 
 constexpr auto INF = 99999999999;
 
@@ -10,7 +11,7 @@ private:
 	std::string cmd;
 	std::string id;
 	int area;
-	int color[4];
+	ImVec4 color;
 
 	//dimensions
 	int len_in_x;
@@ -46,6 +47,7 @@ public:
 	void set_offset_y(int offsetY) { this->offsetY = offsetY; }
 	void set_len_in_x(int len) { this->len_in_x = len; }
 	void set_len_in_y(int len) { this->len_in_y = len; }
+	void set_color(ImVec4 c) { this->color = c; }
 
 	const inline int getArea() { return this->area; }
 	const inline int getposX() { return this->posX; }
@@ -54,7 +56,7 @@ public:
 	const inline int getoffsetY() { return this->offsetY; }
 	const inline int get_len_in_x() { return this->len_in_x * 25; }
 	const inline int get_len_in_y() { return this->len_in_y * 25; }
-
+	const inline ImVec4 getColor() { return this->color; }
 	inline const std::string getID() { return this->id; }
 	inline const std::string get_ref_id() { return this->ref_shape_id; }
 };

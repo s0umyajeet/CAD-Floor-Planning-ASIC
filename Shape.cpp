@@ -6,7 +6,7 @@ Shape::Shape() {
 	cmd = "NULL";
 	id = "NULL";
 	area = INF;
-	for (auto& x : color) { x = INF; }
+	color = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 	len_in_x = INF;
 	len_in_y = INF;
 	offsetX = INF;
