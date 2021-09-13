@@ -10,6 +10,7 @@
 
 using ShapeDataMatrix = std::vector<std::vector<std::string>>;
 
+
 InputHandler& InputHandler::get() {
 	static InputHandler instance;
 	return instance;

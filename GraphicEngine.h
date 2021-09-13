@@ -15,20 +15,32 @@
 
 //visualizer window properties
 struct vis_props {
-	float zoom = 1.0f;
-	float moveX = 0.0f;
-	float moveY = 0.0f;
-	bool legend = false;
-	bool show_different_colors = false;
-	bool reset = false;
+	float zoom;
+	float moveX;
+	float moveY;
+	float  thickness;
+	bool  legend;
+	static bool multicolored;
+	bool  reset;
+	static ImVec4 defaultColor;
+
+	vis_props() {
+		zoom = 1.0f;
+		moveX = 200.0f;
+		moveY = 200.0f;
+		thickness = 1.0f;
+		legend = false;
+		//multicolored = false;
+		reset = false;
+		//defaultColor = ImVec4(0.0f, 0.0f, 1.0f, 1.0f);
+	}
 
 	void reset_props() {
 		zoom = 1.0f;
 		moveX = 0.0f;
 		moveY = 0.0f;
 		legend = false;
-		show_different_colors = false;
-	}	
+	}
 };
 
 class GraphicEngine {
@@ -71,3 +83,4 @@ private:
 	std::vector<int> dummyNums;
 	
 };
+

@@ -21,14 +21,12 @@
 bool GraphicEngine::firstParse = false;
 int GraphicEngine::col_count = 0;
 int GraphicEngine::row_count = 0;
+ImVec4 vis_props::defaultColor = ImVec4(0.45f, 255.0f, 0.60f, 255.0f);
+bool vis_props::multicolored = true;
 
 GraphicEngine::GraphicEngine() {
 	_is_running = true;
-	_is_running = true;
 	_window = NULL;
-	//_surface  = NULL;
-	//_texture  = NULL;
-	//_renderer = NULL;
 }
 
 GraphicEngine::~GraphicEngine() {}
@@ -172,7 +170,6 @@ void GraphicEngine::drawGUI() {
 					ImGui::TableNextRow();
 					for (int column = 0; column < 5; column++)
 					{
-						//std::cout << column + row * 10 << std::endl;
 						ImGui::TableSetColumnIndex(column);
 						switch (column) {
 						case 0:
@@ -229,23 +226,48 @@ void GraphicEngine::drawGUI() {
 
 	//features
 	{
-		static float zoom = 0.0f;
-		static float moveX = 0.0f;
-		static float moveY = 0.0f;
-		static int counter = 0;
-
-		ImGui::Begin("Display options");                          
+		ImGui::Begin("Display Options");                          
 		ImGui::SliderFloat("Zoom", &this->_props.zoom, 0.0f, 2.0f);            
-		ImGui::ColorEdit3("Visualizer BG ", (float*)&clear_color); 
-		ImGui::ShowStyleSelector("Colors##Selector");
-		
-		/*
-		if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-			counter++;
-		ImGui::SameLine();
-		ImGui::Text("counter = %d", counter);
-		*/
+		ImGui::SliderFloat("Thickness", &this->_props.thickness, 1.0f, 2.0f);
+		ImGui::ShowStyleSelector("Color Theme##Selector");
 
+		//Multicolored
+		static int style_idx = -1;
+		if (ImGui::Combo("Shape Color##Selector", &style_idx, "MonoChrome\0Multicolored\0"))
+		{
+			switch (style_idx)
+			{
+			case 0: _props.multicolored = false; break;
+			case 1: _props.multicolored = true; break;
+			}
+			
+		}
+
+		if (not _props.multicolored)
+			ImGui::ColorEdit4("Default Color", (float*)&_props.defaultColor);
+
+		// Display Keyboard/Mouse state
+		if (ImGui::TreeNode("Keyboard & Navigation State"))
+		{
+			ImGui::Text("Keys down:");          for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyDown(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X) (%.02f secs)", i, i, myio.KeysDownDuration[i]); }
+			ImGui::Text("Keys pressed:");       for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyPressed(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X)", i, i); }
+			ImGui::Text("Keys release:");       for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyReleased(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X)", i, i); }
+			ImGui::Text("Keys mods: %s%s%s%s", myio.KeyCtrl ? "CTRL " : "", myio.KeyShift ? "SHIFT " : "", myio.KeyAlt ? "ALT " : "", myio.KeySuper ? "SUPER " : "");
+			ImGui::Text("Chars queue:");        for (int i = 0; i < myio.InputQueueCharacters.Size; i++) { ImWchar c = myio.InputQueueCharacters[i]; ImGui::SameLine();  ImGui::Text("\'%c\' (0x%04X)", (c > ' ' && c <= 255) ? (char)c : '?', c); } // FIXME: We should convert 'c' to UTF-8 here but the functions are not public.
+
+			ImGui::Text("NavInputs down:");     for (int i = 0; i < IM_ARRAYSIZE(myio.NavInputs); i++) if (myio.NavInputs[i] > 0.0f) { ImGui::SameLine(); ImGui::Text("[%d] %.2f (%.02f secs)", i, myio.NavInputs[i], myio.NavInputsDownDuration[i]); }
+			ImGui::Text("NavInputs pressed:");  for (int i = 0; i < IM_ARRAYSIZE(myio.NavInputs); i++) if (myio.NavInputsDownDuration[i] == 0.0f) { ImGui::SameLine(); ImGui::Text("[%d]", i); }
+
+			ImGui::Button("Hovering me sets the\nkeyboard capture flag");
+			if (ImGui::IsItemHovered())
+				ImGui::CaptureKeyboardFromApp(true);
+			ImGui::SameLine();
+			ImGui::Button("Holding me clears the\nthe keyboard capture flag");
+			if (ImGui::IsItemActive())
+				ImGui::CaptureKeyboardFromApp(false);
+			ImGui::TreePop();
+		}
+		
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 	}
@@ -259,6 +281,8 @@ void GraphicEngine::drawGUI() {
 		ImGui::Begin("Visualizer Window", nullptr, visualizer_window_flags);
 		ImDrawList* draw_list = ImGui::GetWindowDrawList();
 		
+		ImGui::Text("Mouse Right: drag to scroll, click for context menu.");
+
 		//drawShape(draw_list);
 		for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
 			drawShape(x.second, draw_list, this->_props);
@@ -270,19 +294,145 @@ void GraphicEngine::drawGUI() {
 	//Legend
 	if (this->_props.legend)
 	{
-		ImGui::Begin("Another Window", &this->_props.legend);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-
+		ImGui::Begin("Legend", &this->_props.legend);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+		/*
 		for (auto x : _current_draw_list) {
 			//ImGui::TextColored(, "Shape 1");
 
 		} 
-		
+		*/
 		if (ImGui::Button("Close"))
 		this->_props.legend = false;
 		ImGui::End();
 	}
+	
+}
+
+
+void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props props) {
+	
+	//Debug
+	std::stringstream outputss;
+	std::fstream output_file("output.txt", std::ios::app);
+	outputss << "Currently drawing: " << drawable.getID() << std::endl;
+	drawable.show_data(outputss);
+	output_file << outputss.str();
+	std::cout << outputss.str() << std::endl;
+	
+
+	// vertices
+	float offset = 400.0f;
+	//float offsetx = 500.0f;
+	int lower_left[2] = { drawable.getposX(), -1 * drawable.getposY() + offset };
+	int lower_right[2] = { drawable.getposX() + drawable.get_len_in_x(), -1 * drawable.getposY() + offset };
+	int upper_left[2] = { drawable.getposX(),  -1 * (drawable.getposY() + drawable.get_len_in_y()) + offset };
+	int upper_right[2] = { drawable.getposX() + drawable.get_len_in_x(),
+						   -1 * (drawable.getposY() + drawable.get_len_in_y()) + offset };
+
+
+	static ImVec2 scrolling(0.0f, 0.0f);
+	const ImVec2 p = ImGui::GetCursorScreenPos();
+
+	static float x = p.x + props.moveX;
+	static float y = p.y + props.moveY;
 
 	
+	/*
+	if (is_active && ImGui::IsMouseDragging(ImGuiMouseButton_Right, mouse_threshold_for_pan))
+	{
+		scrolling.x += myio.MouseDelta.x;
+		scrolling.y += myio.MouseDelta.y;
+	}
+	*/
+	
+
+	ImVec4 color = drawable.getColor();
+
+	//ImGui::Text(drawable.getID().c_str());
+	draw_list->AddLine(
+		ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom ),
+		ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom),
+		
+		(_props.multicolored ? 
+			IM_COL32(color.x, color.y, color.z, color.w) 
+			: 
+			IM_COL32(
+				_props.defaultColor.x * props.defaultColor.w, 
+				_props.defaultColor.y * props.defaultColor.w,
+				_props.defaultColor.z * props.defaultColor.w, 
+				_props.defaultColor.w
+			)
+		),
+		props.thickness
+	);
+
+	draw_list->AddLine(
+		ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom),
+		ImVec2(x + upper_left[0] * props.zoom,y + upper_left[1] * props.zoom),
+
+		(_props.multicolored ?
+			IM_COL32(color.x, color.y, color.z, color.w)
+			:
+			IM_COL32(
+				_props.defaultColor.x * props.defaultColor.w,
+				_props.defaultColor.y * props.defaultColor.w,
+				_props.defaultColor.z * props.defaultColor.w,
+				_props.defaultColor.w
+			)
+		),
+		props.thickness
+	);
+
+	draw_list->AddLine(
+		ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom),
+		ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom),
+
+		(_props.multicolored ?
+			IM_COL32(color.x, color.y, color.z, color.w)
+			:
+			IM_COL32(
+				_props.defaultColor.x * props.defaultColor.w,
+				_props.defaultColor.y * props.defaultColor.w,
+				_props.defaultColor.z * props.defaultColor.w,
+				_props.defaultColor.w
+			)
+		),
+		props.thickness
+	);
+
+	draw_list->AddLine(
+		ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom),
+		ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom),
+
+		(_props.multicolored ?
+			IM_COL32(color.x, color.y, color.z, color.w)
+			:
+			IM_COL32(
+				_props.defaultColor.x * props.defaultColor.w,
+				_props.defaultColor.y * props.defaultColor.w,
+				_props.defaultColor.z * props.defaultColor.w,
+				_props.defaultColor.w
+			)
+		),
+		props.thickness
+	);
+
+	draw_list->AddLine(
+		ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom),
+		ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom),
+		
+		(_props.multicolored ?
+			IM_COL32(color.x, color.y, color.z, color.w)
+			:
+			IM_COL32(
+				_props.defaultColor.x * props.defaultColor.w,
+				_props.defaultColor.y * props.defaultColor.w,
+				_props.defaultColor.z * props.defaultColor.w,
+				_props.defaultColor.w
+			)
+		),
+		props.thickness
+	);
 }
 
 void GraphicEngine::createDummyElements(unsigned int numberOfStrings, unsigned int numberOfInts)
@@ -300,63 +450,10 @@ void GraphicEngine::createDummyElements(unsigned int numberOfStrings, unsigned i
 	}
 }
 
-
-void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props props) {
-	
-	//Debug
-	std::stringstream outputss;
-	std::fstream output_file("output.txt", std::ios::app);
-	outputss << "Currently drawing: " << drawable.getID() << std::endl;
-	drawable.show_data(outputss);
-	output_file << outputss.str();
-	std::cout << outputss.str() << std::endl;
-	
-
-	// vertices
-	float offset = 500.0f;
-	//float offsetx = 500.0f;
-	int lower_left[2] = { drawable.getposX(), -1 * drawable.getposY() + offset };
-	int lower_right[2] = { drawable.getposX() + drawable.get_len_in_x(), -1 * drawable.getposY() + offset };
-	int upper_left[2] = { drawable.getposX(),  -1 * (drawable.getposY() + drawable.get_len_in_y()) + offset };
-	int upper_right[2] = { drawable.getposX() + drawable.get_len_in_x(),
-						   -1 * (drawable.getposY() + drawable.get_len_in_y()) + offset };
-
-	const ImVec2 p = ImGui::GetCursorScreenPos();
-	float x = p.x + props.moveX;
-	float y = p.y + props.moveY;
-
-	/*
-	draw_list->AddLine(ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom), 
-			ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom), IM_COL32(0, 255, 0, 255), 0.0f);
-	draw_list->AddLine(ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom), 
-			ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom), IM_COL32(0, 255, 0, 255), 0.0f);
-	draw_list->AddLine(ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom), 
-			ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom), IM_COL32(0, 255, 0, 255), 0.0f);
-	draw_list->AddLine(ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom), 
-			ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom), IM_COL32(0, 255, 0, 255), 0.0f);
-	draw_list->AddLine(ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom), 
-			ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom), IM_COL32(0, 255, 0, 255), 0.0f);
-	*/
-
-	ImVec4 color = drawable.getColor();
-
-	draw_list->AddLine(ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom),
-		ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
-	draw_list->AddLine(ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom),
-		ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
-	draw_list->AddLine(ImVec2(x + upper_left[0] * props.zoom, y + upper_left[1] * props.zoom),
-		ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
-	draw_list->AddLine(ImVec2(x + upper_right[0] * props.zoom, y + upper_right[1] * props.zoom),
-		ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
-	draw_list->AddLine(ImVec2(x + lower_right[0] * props.zoom, y + lower_right[1] * props.zoom),
-		ImVec2(x + lower_left[0] * props.zoom, y + lower_left[1] * props.zoom), IM_COL32(color.x, color.y, color.z, color.w), 0.0f);
-
-}
-
 void GraphicEngine::render()
 {
 	//Editor Rendering
-	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 0.00f);
+	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	ImGui::Render();
 	glViewport(0, 0, (int)myio.DisplaySize.x, (int)myio.DisplaySize.y);
 	glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
