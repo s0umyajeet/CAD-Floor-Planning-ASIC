@@ -27,6 +27,7 @@ bool vis_props::multicolored = true;
 GraphicEngine::GraphicEngine() {
 	_is_running = true;
 	_window = NULL;
+	//output_file = std::fstream("output.txt", std::ios::app);
 }
 
 GraphicEngine::~GraphicEngine() {}
@@ -142,6 +143,12 @@ void GraphicEngine::drawGUI() {
 		static ImGuiTableFlags flags = ImGuiTableFlags_Resizable | 
 			ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | 
 			ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
+
+		static std::vector <std::string> cmdVec;
+		static std::vector <std::string> shapeVec;
+		static std::vector <std::string> refVec;
+		static std::vector <int>	 offsetXVec;
+		static std::vector <int>	 offsetYVec;
 		
 
 		if (ImGui::BeginTable("table1", 5, flags))
@@ -153,12 +160,42 @@ void GraphicEngine::drawGUI() {
 			ImGui::TableSetupColumn("Pos Y");
 			ImGui::TableHeadersRow();
 
-			// for creating dummy strings and ints
-			if (run == 0) PopulateTable();
+			if (run == 0) {
+				//populate table fields with existing inputs
+
+				//cmd
+				for (auto i = 0; i < row_count; i++) cmdVec.push_back("place");
+
+				//shape
+				for (auto i = 0; i < row_count; i++) shapeVec.push_back(_current_draw_list[i]);
+
+				//ref
+				for (auto i = 0; i < row_count; i++) {
+					auto shape = _current_draw_list[i];
+					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+					refVec.push_back(x.get_ref_id());
+				}
+
+				//offsetX
+				for (auto i = 0; i < row_count; i++) {
+					auto shape = _current_draw_list[i];
+					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+					offsetXVec.push_back(x.getoffsetX());
+				}
+
+				//offsetY
+				for (auto i = 0; i < row_count; i++) {
+					auto shape = _current_draw_list[i];
+					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+					offsetYVec.push_back(x.getoffsetY());
+				}
+			}
 
 			int pos_x = 0, pos_y = 0;
 
-			int dummyStringCounter = 0, dummyIntCounter = 0;
+			
+			rapidcsv::Document doc = ActiveShapeBuffer::get().placementFile;
+
 			if (run > 0) {
 				for (int row = 0; row < row_count; row++)
 				{
@@ -171,40 +208,35 @@ void GraphicEngine::drawGUI() {
 							ImGui::PushID(column + row * 10);
 							ImGui::InputText("##label", &cmdVec[row]);
 							ImGui::PopID();
-							dummyStringCounter++;
 							break;
 						case 1:
 							ImGui::PushID(column + row * 10);
 							ImGui::InputText("##label", &shapeVec[row]);
 							ImGui::PopID();
-							dummyStringCounter++;
 							break;
 						case 2:
 							ImGui::PushID(column + row * 10);
 							ImGui::InputText("##label", &refVec[row]);
 							ImGui::PopID();
-							dummyStringCounter++;
 							break;
 						case 3:
 							ImGui::PushID(column + row * 10);
 							ImGui::InputInt("##label", &offsetXVec[row]);
 							ImGui::PopID();
-							dummyIntCounter++;
 							break;
 						case 4:
 							ImGui::PushID(column + row * 10);
 							ImGui::InputInt("##label", &offsetYVec[row]);
 							ImGui::PopID();
-							dummyIntCounter++;
 							break;
 						}
 					}
 
-					rapidcsv::Document doc = ActiveShapeBuffer::get().placementFile;
-					doc.SetRow<std::string> (
+					
+					doc.SetRow<std::string>(
 						row, std::vector<std::string> {cmdVec[row], shapeVec[row], refVec[row],
-						std::to_string(offsetXVec[row]), std::to_string(offsetYVec[row]) }
-					);
+						std::to_string(offsetXVec[row]), std::to_string(offsetYVec[row]) });
+					
 					doc.Save();
 				}
 						
@@ -294,7 +326,6 @@ void GraphicEngine::drawGUI() {
 		/*
 		for (auto x : _current_draw_list) {
 			//ImGui::TextColored(, "Shape 1");
-
 		} 
 		*/
 		if (ImGui::Button("Close"))
@@ -433,6 +464,8 @@ void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props 
 	);
 }
 
+
+/*
 void GraphicEngine::PopulateTable()
 {
 	
@@ -475,6 +508,7 @@ void GraphicEngine::PopulateTable()
 		dummyNums.push_back(int());
 	}
 }
+*/
 
 void GraphicEngine::render()
 {
@@ -511,7 +545,6 @@ void GraphicEngine::quit() {
 	ImGui::DestroyContext();
 	
 	SDL_GL_DeleteContext(_gl_context);
-	//SDL_DestroyRenderer(_renderer);
 	SDL_DestroyWindow(_window);
 	SDL_Quit();
 }

@@ -62,9 +62,11 @@ public:
 	static int col_count;
 	static int row_count;
 	std::vector<std::string>  _current_draw_list;
+	/*
+	std::stringstream outputss;
+	std::fstream output_file;
+	*/
 
-	// method to create dummy elements to reference inside InputText() and InputInt()
-	void PopulateTable();
 
 private:
 	GraphicEngine();
@@ -79,14 +81,12 @@ private:
 	int		   _screen_width;
 	int		   _screen_height;
 
+	/*
 	std::vector <std::string> cmdVec;
 	std::vector <std::string> shapeVec;
 	std::vector <std::string> refVec;
 	std::vector <int>	  offsetXVec;
 	std::vector <int>	  offsetYVec;
-	
-	std::vector<std::string> dummyStrings;
-	std::vector<int> dummyNums;
-	
+	*/
 };
 
