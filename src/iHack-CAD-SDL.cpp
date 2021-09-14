@@ -68,10 +68,11 @@ void parser() {
 	std::cout << "grpahicccc count" << GraphicEngine::row_count << std::endl;
 	GraphicEngine::firstParse = true;
 	
-	bool editor_is_running = true;
-	while (editor_is_running) {
+	while (GraphicEngine::get().isRunning()) {
 		if (m.try_lock()) {
- 			InputHandler::get().parsePlacementCSV(ActiveShapeBuffer::get().placementFile);
+			//std::cout << "running" << std::endl;
+			ActiveShapeBuffer::placementFile = rapidcsv::Document("E:/Dev/C++ Projects/iHack-CAD-2021/iHack-CAD-2021/src/placement.csv", rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(' '));
+			InputHandler::get().parsePlacementCSV(ActiveShapeBuffer::get().placementFile);
 			m.unlock();
 		}
 	}
@@ -82,6 +83,15 @@ int main(int argc, char* argv[]) {
 	std::thread producer(parser);
 	engine();
 	producer.join();
+
+	/* debug
+	std::fstream file("output3.txt", std::ios::app);
+	std::stringstream outputss;
+	for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
+		x.second.show_data(outputss);
+		file << x.first << " " << outputss.str() << std::endl;
+	}
+	*/
 	return 0;
 }
 
