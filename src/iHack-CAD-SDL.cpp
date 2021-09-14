@@ -84,14 +84,14 @@ int main(int argc, char* argv[]) {
 	engine();
 	producer.join();
 
-	/* debug
-	std::fstream file("output3.txt", std::ios::app);
+
+	std::fstream file("output.txt", std::ios::in);
 	std::stringstream outputss;
 	for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
 		x.second.show_data(outputss);
 		file << x.first << " " << outputss.str() << std::endl;
 	}
-	*/
+
 	return 0;
 }
 

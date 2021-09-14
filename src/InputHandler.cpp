@@ -86,7 +86,7 @@ int InputHandler::parsePlacementCSV(rapidcsv::Document doc) {
                 x = *temp;
         }
 
-        GraphicEngine::get()._current_draw_list.push_back(temp->getID());
+        //GraphicEngine::get()._current_draw_list.push_back(temp->getID());
     }
 
     return row_count;

@@ -132,6 +132,7 @@ void GraphicEngine::drawGUI() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
+	
 
 	//Show input window
 	{
@@ -162,37 +163,18 @@ void GraphicEngine::drawGUI() {
 
 			if (run == 0) {
 				//populate table fields with existing inputs
-
 				//cmd
 				for (auto i = 0; i < row_count; i++) cmdVec.push_back("place");
 
 				//shape
-				for (auto i = 0; i < row_count; i++) shapeVec.push_back(_current_draw_list[i]);
-
-				//ref
-				for (auto i = 0; i < row_count; i++) {
-					auto shape = _current_draw_list[i];
-					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-					refVec.push_back(x.get_ref_id());
+				for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
+					shapeVec.push_back(x.first);
+					refVec.push_back(x.second.get_ref_id());
+					offsetXVec.push_back(x.second.getoffsetX());
+					offsetYVec.push_back(x.second.getoffsetY());
 				}
-
-				//offsetX
-				for (auto i = 0; i < row_count; i++) {
-					auto shape = _current_draw_list[i];
-					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-					offsetXVec.push_back(x.getoffsetX());
-				}
-
-				//offsetY
-				for (auto i = 0; i < row_count; i++) {
-					auto shape = _current_draw_list[i];
-					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-					offsetYVec.push_back(x.getoffsetY());
-				}
+				
 			}
-
-			int pos_x = 0, pos_y = 0;
-
 			
 			rapidcsv::Document doc = ActiveShapeBuffer::get().placementFile;
 
@@ -243,7 +225,14 @@ void GraphicEngine::drawGUI() {
 			}
 			
 			ImGui::EndTable();
-			if (ImGui::Button("Add 5 more")) row_count += 5;
+			if (ImGui::Button("Add 5 more")) {
+				row_count += 5;
+				cmdVec.resize(cmdVec.size() + 5);
+				shapeVec.resize(shapeVec.size() + 5);
+				refVec.resize(refVec.size() + 5);
+				offsetXVec.resize(offsetXVec.size() + 5);
+				offsetYVec.resize(offsetYVec.size() + 5);
+			}
 		}
 
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -274,27 +263,9 @@ void GraphicEngine::drawGUI() {
 		if (not _props.multicolored)
 			ImGui::ColorEdit4("Default Color", (float*)&_props.defaultColor);
 
-		// Display Keyboard/Mouse state
-		if (ImGui::TreeNode("Keyboard & Navigation State"))
-		{
-			ImGui::Text("Keys down:");          for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyDown(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X) (%.02f secs)", i, i, myio.KeysDownDuration[i]); }
-			ImGui::Text("Keys pressed:");       for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyPressed(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X)", i, i); }
-			ImGui::Text("Keys release:");       for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyReleased(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X)", i, i); }
-			ImGui::Text("Keys mods: %s%s%s%s", myio.KeyCtrl ? "CTRL " : "", myio.KeyShift ? "SHIFT " : "", myio.KeyAlt ? "ALT " : "", myio.KeySuper ? "SUPER " : "");
-			ImGui::Text("Chars queue:");        for (int i = 0; i < myio.InputQueueCharacters.Size; i++) { ImWchar c = myio.InputQueueCharacters[i]; ImGui::SameLine();  ImGui::Text("\'%c\' (0x%04X)", (c > ' ' && c <= 255) ? (char)c : '?', c); } // FIXME: We should convert 'c' to UTF-8 here but the functions are not public.
+		if (_props.multicolored)
+			ImGui::Checkbox("Show Color Legend", &this->_props.legend);
 
-			ImGui::Text("NavInputs down:");     for (int i = 0; i < IM_ARRAYSIZE(myio.NavInputs); i++) if (myio.NavInputs[i] > 0.0f) { ImGui::SameLine(); ImGui::Text("[%d] %.2f (%.02f secs)", i, myio.NavInputs[i], myio.NavInputsDownDuration[i]); }
-			ImGui::Text("NavInputs pressed:");  for (int i = 0; i < IM_ARRAYSIZE(myio.NavInputs); i++) if (myio.NavInputsDownDuration[i] == 0.0f) { ImGui::SameLine(); ImGui::Text("[%d]", i); }
-
-			ImGui::Button("Hovering me sets the\nkeyboard capture flag");
-			if (ImGui::IsItemHovered())
-				ImGui::CaptureKeyboardFromApp(true);
-			ImGui::SameLine();
-			ImGui::Button("Holding me clears the\nthe keyboard capture flag");
-			if (ImGui::IsItemActive())
-				ImGui::CaptureKeyboardFromApp(false);
-			ImGui::TreePop();
-		}
 		
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
@@ -302,14 +273,11 @@ void GraphicEngine::drawGUI() {
 
 	//Visualizer Window
 	{
-		auto visualizer_window_flags = ImGuiWindowFlags_AlwaysVerticalScrollbar | 
-				ImGuiWindowFlags_AlwaysHorizontalScrollbar;
+		auto visualizer_window_flags = 0;
 
 		ImVec2 scrolling_child_size = ImVec2(0, ImGui::GetFrameHeightWithSpacing() * 7 + 30);
 		ImGui::Begin("Visualizer Window", nullptr, visualizer_window_flags);
 		ImDrawList* draw_list = ImGui::GetWindowDrawList();
-		
-		ImGui::Text("Mouse Right: drag to scroll, click for context menu.");
 
 		//drawShape(draw_list);
 		for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
@@ -323,11 +291,12 @@ void GraphicEngine::drawGUI() {
 	if (this->_props.legend)
 	{
 		ImGui::Begin("Legend", &this->_props.legend);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-		/*
-		for (auto x : _current_draw_list) {
-			//ImGui::TextColored(, "Shape 1");
+		
+		for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
+			ImVec4 color = x.second.getColor();
+			ImGui::TextColored(color, x.first.c_str());
 		} 
-		*/
+
 		if (ImGui::Button("Close"))
 		this->_props.legend = false;
 		ImGui::End();
@@ -365,14 +334,6 @@ void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props 
 	float x = p.x + props.moveX;
 	float y = p.y + props.moveY;
 
-	
-	/*
-	if (is_active && ImGui::IsMouseDragging(ImGuiMouseButton_Right, mouse_threshold_for_pan))
-	{
-		scrolling.x += myio.MouseDelta.x;
-		scrolling.y += myio.MouseDelta.y;
-	}
-	*/
 	
 
 	ImVec4 color = drawable.getColor();
@@ -517,6 +478,7 @@ void GraphicEngine::render()
 	ImGui::Render();
 	glViewport(0, 0, (int)myio.DisplaySize.x, (int)myio.DisplaySize.y);
 	glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+	
 	glClear(GL_COLOR_BUFFER_BIT);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	SDL_GL_SwapWindow(_window);
@@ -538,7 +500,6 @@ void GraphicEngine::handleEvents()
 void GraphicEngine::quit() {
 	std::cout << "Shutting down GraphicEngine..." << std::endl;
 	_is_running= false;
-	_is_running = false;
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
@@ -547,8 +508,4 @@ void GraphicEngine::quit() {
 	SDL_GL_DeleteContext(_gl_context);
 	SDL_DestroyWindow(_window);
 	SDL_Quit();
-}
-
-void GraphicEngine::update()
-{
 }
