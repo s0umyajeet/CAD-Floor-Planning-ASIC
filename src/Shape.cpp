@@ -6,7 +6,7 @@ Shape::Shape() {
 	cmd = "NULL";
 	id = "NULL";
 	area = INF;
-	color = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+	color = ImVec4(100 + rand() % 100, 100 + rand() % 100, 100 + rand() % 100, 255);
 	len_in_x = INF;
 	len_in_y = INF;
 	offsetX = INF;
@@ -18,6 +18,7 @@ Shape::Shape() {
 
 
 void Shape::show_data(std::stringstream &outputss) {
+
 	outputss << "\t" << "cmd " << this->cmd << std::endl;
 	outputss << "\t" << "id " << this->id << std::endl;
 	outputss << "\t" << "area " << this->area << std::endl;
