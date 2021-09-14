@@ -47,7 +47,7 @@ public:
 	void set_offset_y(int offsetY) { this->offsetY = offsetY; }
 	void set_len_in_x(int len) { this->len_in_x = len; }
 	void set_len_in_y(int len) { this->len_in_y = len; }
-	void set_color(ImVec4 c) { this->color = c; }
+	void setColor(ImVec4 c) { this->color = c; }
 
 	const inline int getArea() { return this->area; }
 	const inline int getposX() { return this->posX; }

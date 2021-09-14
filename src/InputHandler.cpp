@@ -48,6 +48,11 @@ int InputHandler::parsePlacementCSV(rapidcsv::Document doc) {
         temp->set_offset_x(stoi(this_row[3]));
         temp->set_offset_y(stoi(this_row[4]));
 
+        if (not GraphicEngine::get().firstParse) {
+                auto x = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
+                temp->setColor(x.getColor());
+        }
+
         //set absolute coordinates
         if (temp->get_ref_id() == "top") {
             temp->setposX(temp->getoffsetX());
@@ -80,6 +85,7 @@ int InputHandler::parsePlacementCSV(rapidcsv::Document doc) {
                 Shape& x = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
                 x = *temp;
         }
+
         GraphicEngine::get()._current_draw_list.push_back(temp->getID());
     }
 

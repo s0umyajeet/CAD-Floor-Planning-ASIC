@@ -30,14 +30,3 @@ void Shape::show_data(std::stringstream &outputss) {
 	outputss << "\t" << "posY " << this->posY << std::endl;
 	outputss << "\t" << "ref_shape_id " << this->ref_shape_id << std::endl;
 }
-
-
-
-/*
-shape::shape(shape&& other)
-	: cmd(std::move(other.cmd)), id(std::move(other.id)), area(std::move(other.area)), len_in_x(std::move(other.len_in_x)), len_in_y(std::move(other.len_in_y)),
-	offsetx(std::move(other.offsetx)), offsety(std::move(other.offsety)), posx(std::move(other.posx)), posy(std::move(other.posy)), ref_shape_id(std::move(other.ref_shape_id))
-{
-
-}
-*/
