@@ -1,7 +1,7 @@
 #pragma once
 #include "Shape.h"
 #include "rapidcsv.h"
-#include <map>
+#include <unordered_map>
 
 class ActiveShapeBuffer
 {
@@ -13,8 +13,8 @@ private:
 	ActiveShapeBuffer();
 	~ActiveShapeBuffer() {};
 public:
-	static std::map<std::string, Shape> shapePlacementMap;
-	static std::map<std::string, int>	 shapeAreaMap;
+	static std::unordered_map<std::string, Shape> shapePlacementMap;
+	static std::unordered_map<std::string, int>	 shapeAreaMap;
 
 	static rapidcsv::Document areaFile;  
 	static rapidcsv::Document placementFile;  
