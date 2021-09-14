@@ -64,7 +64,7 @@ public:
 	std::vector<std::string>  _current_draw_list;
 
 	// method to create dummy elements to reference inside InputText() and InputInt()
-	void createDummyElements(unsigned int numberOfStrings, unsigned int numberOfInts);
+	void PopulateTable();
 
 private:
 	GraphicEngine();
@@ -79,6 +79,12 @@ private:
 	int		   _screen_width;
 	int		   _screen_height;
 
+	std::vector <std::string> cmdVec;
+	std::vector <std::string> shapeVec;
+	std::vector <std::string> refVec;
+	std::vector <int>	  offsetXVec;
+	std::vector <int>	  offsetYVec;
+	
 	std::vector<std::string> dummyStrings;
 	std::vector<int> dummyNums;
 	

@@ -123,9 +123,8 @@ bool GraphicEngine::init(window_props editor) {
 }
 
 void GraphicEngine::drawGUI() {
-	// Our state
-	bool show_demo_window = true;
-	bool show_another_window = false;
+	static int run = 0;
+
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	// Start the Dear ImGui frame
@@ -145,26 +144,22 @@ void GraphicEngine::drawGUI() {
 			ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
 		
 
-		//if (GraphicEngine::firstParse) {
+		if (ImGui::BeginTable("table1", 5, flags))
+		{
+			ImGui::TableSetupColumn("cmd");
+			ImGui::TableSetupColumn("Shape Name");
+			ImGui::TableSetupColumn("Reference Shape");
+			ImGui::TableSetupColumn("Pos X");
+			ImGui::TableSetupColumn("Pos Y");
+			ImGui::TableHeadersRow();
 
-			if (ImGui::BeginTable("table1", 5, flags))
-			{
-				ImGui::TableSetupColumn("cmd");
-				ImGui::TableSetupColumn("Shape Name");
-				ImGui::TableSetupColumn("Reference Shape");
-				ImGui::TableSetupColumn("Pos X");
-				ImGui::TableSetupColumn("Pos Y");
-				ImGui::TableHeadersRow();
+			// for creating dummy strings and ints
+			if (run == 0) PopulateTable();
 
-				// for creating dummy strings and ints
-				createDummyElements(row_count * 3, row_count * 2);
-				
-				std::string cmd;
-				std::string shape_name;
-				std::string ref_shape;
-				int pos_x = 0, pos_y = 0;
+			int pos_x = 0, pos_y = 0;
 
-				int dummyStringCounter = 0, dummyIntCounter = 0;
+			int dummyStringCounter = 0, dummyIntCounter = 0;
+			if (run > 0) {
 				for (int row = 0; row < row_count; row++)
 				{
 					ImGui::TableNextRow();
@@ -174,31 +169,31 @@ void GraphicEngine::drawGUI() {
 						switch (column) {
 						case 0:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &dummyStrings[dummyStringCounter]);
+							ImGui::InputText("##label", &cmdVec[row]);
 							ImGui::PopID();
 							dummyStringCounter++;
 							break;
 						case 1:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &dummyStrings[dummyStringCounter]);
+							ImGui::InputText("##label", &shapeVec[row]);
 							ImGui::PopID();
 							dummyStringCounter++;
 							break;
 						case 2:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &dummyStrings[dummyStringCounter]);
+							ImGui::InputText("##label", &refVec[row]);
 							ImGui::PopID();
 							dummyStringCounter++;
 							break;
 						case 3:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputInt("##label", &dummyNums[dummyIntCounter]);
+							ImGui::InputInt("##label", &offsetXVec[row]);
 							ImGui::PopID();
 							dummyIntCounter++;
 							break;
 						case 4:
 							ImGui::PushID(column + row * 10);
-							ImGui::InputInt("##label", &dummyNums[dummyIntCounter]);
+							ImGui::InputInt("##label", &offsetYVec[row]);
 							ImGui::PopID();
 							dummyIntCounter++;
 							break;
@@ -206,18 +201,17 @@ void GraphicEngine::drawGUI() {
 					}
 
 					rapidcsv::Document doc = ActiveShapeBuffer::get().placementFile;
-					/*
-					std::cout << "Writing the values: "
-						<< cmd << " " << shape_name << " " << ref_shape << " " << pos_x << " " << pos_y << std::endl;
-					doc.SetRow<std::string>(row, std::vector<std::string>{cmd, shape_name, ref_shape, 
-											std::to_string(pos_x), std::to_string(pos_y)});
-					doc.Save();*/
+					doc.SetRow<std::string> (
+						row, std::vector<std::string> {cmdVec[row], shapeVec[row], refVec[row],
+						std::to_string(offsetXVec[row]), std::to_string(offsetYVec[row]) }
+					);
+					doc.Save();
 				}
-				ImGui::EndTable();
-			//}
-
-			if (ImGui::Button("Add 5 more"))
-				row_count += 5;
+						
+			}
+			
+			ImGui::EndTable();
+			if (ImGui::Button("Add 5 more")) row_count += 5;
 		}
 
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -227,7 +221,9 @@ void GraphicEngine::drawGUI() {
 	//features
 	{
 		ImGui::Begin("Display Options");                          
-		ImGui::SliderFloat("Zoom", &this->_props.zoom, 0.0f, 2.0f);            
+		ImGui::SliderFloat("Zoom", &this->_props.zoom, 0.0f, 2.0f);    
+		ImGui::SliderFloat("Move X", &this->_props.moveX, 100.0f, 500.0f);
+		ImGui::SliderFloat("Move Y", &this->_props.moveY, 100.0f, 500.0f);
 		ImGui::SliderFloat("Thickness", &this->_props.thickness, 1.0f, 2.0f);
 		ImGui::ShowStyleSelector("Color Theme##Selector");
 
@@ -305,6 +301,8 @@ void GraphicEngine::drawGUI() {
 		this->_props.legend = false;
 		ImGui::End();
 	}
+
+	run++;
 	
 }
 
@@ -333,8 +331,8 @@ void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props 
 	static ImVec2 scrolling(0.0f, 0.0f);
 	const ImVec2 p = ImGui::GetCursorScreenPos();
 
-	static float x = p.x + props.moveX;
-	static float y = p.y + props.moveY;
+	float x = p.x + props.moveX;
+	float y = p.y + props.moveY;
 
 	
 	/*
@@ -435,8 +433,36 @@ void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props 
 	);
 }
 
-void GraphicEngine::createDummyElements(unsigned int numberOfStrings, unsigned int numberOfInts)
+void GraphicEngine::PopulateTable()
 {
+	
+	//cmd
+	for (auto i = 0; i < row_count; i++) cmdVec.push_back("place");
+
+	//shape
+	for (auto i = 0; i < row_count; i++) shapeVec.push_back(_current_draw_list[i]);
+
+	//ref
+	for (auto i = 0; i < row_count; i++) {
+		auto shape = _current_draw_list[i];
+		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+		refVec.push_back(x.get_ref_id());
+	}
+
+	//offsetX
+	for (auto i = 0; i < row_count; i++) {
+		auto shape = _current_draw_list[i];
+		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+		offsetXVec.push_back(x.getoffsetX());
+	}
+
+	//offsetY
+	for (auto i = 0; i < row_count; i++) {
+		auto shape = _current_draw_list[i];
+		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+		offsetYVec.push_back(x.getoffsetY());
+	}
+
 	unsigned int totalStrings = row_count * 3;
 	unsigned int totalInts = row_count * 2;
 
