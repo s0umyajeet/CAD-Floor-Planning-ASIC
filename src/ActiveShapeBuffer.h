@@ -13,11 +13,11 @@ private:
 	ActiveShapeBuffer();
 	~ActiveShapeBuffer() {};
 public:
-	std::map<std::string, Shape> shapePlacementMap;
-	std::map<std::string, int>	 shapeAreaMap;
+	static std::map<std::string, Shape> shapePlacementMap;
+	static std::map<std::string, int>	 shapeAreaMap;
 
-	rapidcsv::Document areaFile;  
-	rapidcsv::Document placementFile;  
+	static rapidcsv::Document areaFile;  
+	static rapidcsv::Document placementFile;  
 };
 
 
