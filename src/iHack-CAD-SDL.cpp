@@ -84,14 +84,16 @@ int main(int argc, char* argv[]) {
 	engine();
 	producer.join();
 
-	/* debug
-	std::fstream file("output3.txt", std::ios::app);
-	std::stringstream outputss;
-	for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
-		x.second.show_data(outputss);
-		file << x.first << " " << outputss.str() << std::endl;
+	/* log output */
+	std::fstream file("output.txt", std::ios::app);
+
+	for (int i = 1; i <= GraphicEngine::row_count; i++) {
+		std::string shape = "shape_" + std::to_string(i);
+		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];		
+		file << shape << " : (" << x.getposX() << ", " << x.getposY() << ")\n";
+
 	}
-	*/
+
 	return 0;
 }
 

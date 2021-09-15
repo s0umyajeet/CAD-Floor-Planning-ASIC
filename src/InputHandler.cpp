@@ -48,7 +48,7 @@ int InputHandler::parsePlacementCSV(rapidcsv::Document doc) {
         temp->set_offset_x(stoi(this_row[3]));
         temp->set_offset_y(stoi(this_row[4]));
 
-        if (not GraphicEngine::get().firstParse) {
+        if (!GraphicEngine::get().firstParse) {
                 auto x = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
                 temp->setColor(x.getColor());
         }

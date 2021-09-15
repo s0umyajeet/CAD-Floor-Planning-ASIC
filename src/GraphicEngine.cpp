@@ -189,6 +189,7 @@ void GraphicEngine::drawGUI() {
 					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
 					offsetYVec.push_back(x.getoffsetY());
 				}
+
 			}
 
 			int pos_x = 0, pos_y = 0;
@@ -238,12 +239,25 @@ void GraphicEngine::drawGUI() {
 						std::to_string(offsetXVec[row]), std::to_string(offsetYVec[row]) });
 					
 					doc.Save();
+
+					//std::cout << "current draw list size: " << _current_draw_list.size() << std::endl;
+					_current_draw_list.resize(0);
 				}
 						
 			}
 			
 			ImGui::EndTable();
-			if (ImGui::Button("Add 5 more")) row_count += 5;
+			/*
+			if (ImGui::Button("Add 5 more")) {
+				row_count += 5;
+				cmdVec.resize(cmdVec.size() + 5);
+				shapeVec.resize(shapeVec.size() + 5);
+				refVec.resize(refVec.size() + 5);
+				offsetXVec.resize(offsetXVec.size() + 5);
+				offsetYVec.resize(offsetYVec.size() + 5);
+			}
+			*/
+				
 		}
 
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -271,7 +285,7 @@ void GraphicEngine::drawGUI() {
 			
 		}
 
-		if (not _props.multicolored)
+		if (!_props.multicolored)
 			ImGui::ColorEdit4("Default Color", (float*)&_props.defaultColor);
 
 		// Display Keyboard/Mouse state
@@ -340,14 +354,14 @@ void GraphicEngine::drawGUI() {
 
 void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props props) {
 	
-	//Debug
+	/*
 	std::stringstream outputss;
 	std::fstream output_file("output.txt", std::ios::app);
 	outputss << "Currently drawing: " << drawable.getID() << std::endl;
 	drawable.show_data(outputss);
 	output_file << outputss.str();
-	std::cout << outputss.str() << std::endl;
-	
+	//std::cout << outputss.str() << std::endl;
+	*/
 
 	// vertices
 	float offset = 400.0f;

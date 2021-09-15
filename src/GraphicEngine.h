@@ -62,10 +62,7 @@ public:
 	static int col_count;
 	static int row_count;
 	std::vector<std::string>  _current_draw_list;
-	/*
-	std::stringstream outputss;
-	std::fstream output_file;
-	*/
+	//std::vector<std::string>
 
 
 private:
