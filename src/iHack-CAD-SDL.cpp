@@ -18,8 +18,6 @@
 #include "imgui_impl_sdl.h"
 #include <SDL_opengl.h>
 
-std::mutex m;
-
 
 void engine() {
 	window_props window_props(std::string("iHack-CAD"),
@@ -28,74 +26,78 @@ void engine() {
 	);
 
 	if (!GraphicEngine::get().init(window_props)) {
-		std::cout << "Error" << std::endl;
+		std::cout << "Error" << "\n";
 		EXIT_FAILURE;
-	} else {}
+	}
 
 	int fps = 60;
 	int desiredDelta = 1000 / fps;
 	
-	
 	while (GraphicEngine::get().isRunning()) {
-		//non-blocking lock
-		if (m.try_lock()) {
-			std::cout << "thread 2" << std::endl;
-			int start = SDL_GetTicks();
-			GraphicEngine::get().drawGUI();
-			GraphicEngine::get().render();
-			int delta = SDL_GetTicks() - start;
 
-			if (delta < desiredDelta) {
-				SDL_Delay(desiredDelta - delta);
-			}
-			m.unlock();
-		}
+		int start = SDL_GetTicks();
+		GraphicEngine::get().drawGUI();
+		GraphicEngine::get().render();
+		int delta = SDL_GetTicks() - start;
+
+		if (delta < desiredDelta) 
+			SDL_Delay(desiredDelta - delta);
+			
 		GraphicEngine::get().handleEvents();
 	}
 
 	GraphicEngine::get().quit();
 }
 
-
-void parser() {
-
-	while (GraphicEngine::get().isRunning()) {
-		if (m.try_lock()) {
-			std::cout << "thread 1" << std::endl;
-			ActiveShapeBuffer::placementFile = rapidcsv::Document("E:/Dev/C++ Projects/iHack-CAD-2021/iHack-CAD-2021/src/placement.csv", rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(' '));
-			InputHandler::get().parsePlacementCSV(ActiveShapeBuffer::get().placementFile);
-			m.unlock();
-		}
-	}
-	std::cout << "done" << std::endl;
-}
-
 int main(int argc, char* argv[]) {
 
 	//parse shapes.csv && update the shapeID-vs-area table (once)
+
+	if (argc != 3) {
+		std::cout << "Usage: visualizer <areaFilePath> <placementFilePath>" << "\n";
+		return EXIT_SUCCESS;
+	}
+
+	if (ActiveShapeBuffer::loadFiles(std::string(argv[1]), std::string(argv[2]))) {
+		std::cout << "Loading files..." << "\n";
+	} else {
+		std::cout << "File loading failed" << "\n";
+		return 0;
+	}
+
+
 	InputHandler::get().parseShapeCSV(ActiveShapeBuffer::get().areaFile);
 
 	//first parse
 	GraphicEngine::row_count = InputHandler::get().parsePlacementCSV(ActiveShapeBuffer::get().placementFile);
-	std::cout << "grpahicccc count " << GraphicEngine::row_count << std::endl;
+	//std::cout << "grpahicccc count " << GraphicEngine::row_count << "\n";
 	GraphicEngine::firstParse = true;
 	GraphicEngine::parseCount++;
 
+	/*
+	std::cout << ActiveShapeBuffer::get().shapeAreaMap.size() << "\n";
+	for (auto x : ActiveShapeBuffer::get().shapeAreaMap)
+		std::cout << "here " << x.first << "  " << x.second << "\n";
 
+	
+
+	
+	for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
+		std::cout << x.first << " ";
+		x.second.show_data();
+	}*/
+	
+	
 	if (GraphicEngine::firstParse) {
-		std::thread producer(parser);
 		engine();
-		producer.join();
+		/*
+		for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
+			std::cout << x.first << " ";
+			x.second.show_data();
+		}
+		*/
 	}
 
-	/* log output */
-	std::fstream file("output.txt", std::ios::app);
-
-	for (int i = 0; i < GraphicEngine::row_count; i++) {
-		std::string shape = "shape_" + std::to_string(i);
-		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];		
-		file << shape << " : (" << x.getposX() << ", " << x.getposY() << ")\n";
-	}
 
 	return 0;
 }

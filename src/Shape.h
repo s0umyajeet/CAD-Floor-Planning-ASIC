@@ -10,6 +10,7 @@ class Shape
 private:
 	std::string cmd;
 	std::string id;
+	std::string name;
 	int area;
 	ImVec4 color;
 
@@ -36,8 +37,10 @@ public:
 	//Shape(std::string cmd, std::string id, int area, int color[], int offsetX, int offsetY, std::string ref_shape);
 
 	//Shape(const )
-	void show_data(std::stringstream &outputss);
+	void write_data(std::stringstream &outputss);
+	void show_data();
 	void setArea(int area) { this->area = area; }
+	void setName(std::string name) { this->name = name; }
 	void setposX(int x) { this->posX = x; }
 	void setposY(int y) { this->posY = y; }
 	void setID(std::string id) { this->id = id; }
@@ -51,6 +54,7 @@ public:
 
 	const inline int getArea() { return this->area; }
 	const inline int getposX() { return this->posX; }
+	const inline std::string getName() { return this->name; }
 	const inline int getposY() { return this->posY; }
 	const inline int getoffsetX() { return this->offsetX; }
 	const inline int getoffsetY() { return this->offsetY; }

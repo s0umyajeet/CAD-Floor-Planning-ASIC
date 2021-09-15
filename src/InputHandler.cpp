@@ -22,6 +22,7 @@ int InputHandler::parseShapeCSV(rapidcsv::Document doc) {
 
     for (int i = 0; i < row_count; i++) {
         std::vector <std::string> this_row = doc.GetRow<std::string>(i);
+        //auto dummy = GraphicEngine::get().constructShapeIDFromShapeName(this_row[0]);
         ActiveShapeBuffer::get().shapeAreaMap.insert({ this_row[0], stoi(this_row[1]) });
     }
     return row_count;
@@ -38,15 +39,12 @@ int InputHandler::parsePlacementCSV(rapidcsv::Document doc) {
         Shape* temp = new Shape;
 
         temp->setcmd(this_row[0]);
+        //temp->setName(this_row[1]);
+        temp->setName(GraphicEngine::get().constructShapeIDFromShapeName(this_row[1]));
         temp->setID(this_row[1]);
         temp->set_ref_shape_id(this_row[2]);
         temp->set_offset_x(stoi(this_row[3]));
         temp->set_offset_y(stoi(this_row[4]));
-
-        if (GraphicEngine::parseCount > 0) {
-                auto x = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
-                temp->setColor(x.getColor());
-        }
 
         //set absolute coordinates
         if (temp->get_ref_id() == "top") {
@@ -69,19 +67,17 @@ int InputHandler::parsePlacementCSV(rapidcsv::Document doc) {
         temp->set_len_in_x(sqrt(temp->getArea()));
         temp->set_len_in_y(sqrt(temp->getArea()));
 
-
-        //optimize
-        if (GraphicEngine::parseCount == 0) {
-                ActiveShapeBuffer::get().shapePlacementMap.insert({ temp->getID(), *temp });
-        }
-        else {
-                //update values;
-                Shape& x = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
-                x = *temp;
-        }
+        ActiveShapeBuffer::get().shapePlacementMap.insert({ temp->getID(), *temp });
         GraphicEngine::get()._current_draw_list.push_back(temp->getID());
     }
-    
-    GraphicEngine::parseCount++;
+
+    /*
+    for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
+            std::cout << x.first << " \n";
+            x.second.show_data();
+    }
+    std::cout << "row count" << row_count << "\n";
+    std::cout << "map size" << ActiveShapeBuffer::get().shapePlacementMap.size() << "\n";
+    */
     return row_count;
 }

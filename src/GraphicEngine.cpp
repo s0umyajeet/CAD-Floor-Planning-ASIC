@@ -48,7 +48,7 @@ bool GraphicEngine::init(window_props editor) {
 
 
 	if (SDL_Init(SDL_INIT_EVERYTHING) >= 0) {
-		std::cout << "All SDL subsystems initialized successfully... " << std::endl;
+		std::cout << "All SDL subsystems initialized successfully... " << "\n";
 		SDL_WindowFlags editor_window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 		
 
@@ -90,7 +90,7 @@ bool GraphicEngine::init(window_props editor) {
 		);
 
 		if (_window) {
-			//std::cout << "running running running" << std::endl;
+			//std::cout << "running running running" << "\n";
 			_gl_context = SDL_GL_CreateContext(_window);
 			SDL_GL_MakeCurrent(_window, _gl_context);
 			SDL_GL_SetSwapInterval(1); // Enable vsync
@@ -109,20 +109,27 @@ bool GraphicEngine::init(window_props editor) {
 			ImGui_ImplOpenGL3_Init(glsl_version);
 		}
 		else {
-			std::cout << "Window creation failed..." << SDL_GetError() << std::endl;
+			std::cout << "Window creation failed..." << SDL_GetError() << "\n";
 			return false;
 		}
 	}
 	else {
-		std::cout << "Error initializing subsystems... " << SDL_GetError() << std::endl;
+		std::cout << "Error initializing subsystems... " << SDL_GetError() << "\n";
 		return false;
 	}
 
-	std::cout << "Init successful..." << std::endl;
+	std::cout << "Init successful..." << "\n";
 	//Everything initialized successully, start the main loop
 	_is_running = true;       
 	return true;
 }
+
+std::string GraphicEngine::constructShapeIDFromShapeName(std::string str) {
+	auto loc_underscore = str.find('_');
+	auto extract = str.substr(loc_underscore + 1, str.size() - loc_underscore + 1);
+	return extract;
+}
+
 
 void GraphicEngine::drawGUI() {
 	static int run = 0;
@@ -194,11 +201,6 @@ void GraphicEngine::drawGUI() {
 
 				}
 
-				int pos_x = 0, pos_y = 0;
-
-
-				rapidcsv::Document doc = ActiveShapeBuffer::get().placementFile;
-
 				if (run > 0) {
 					for (int row = 0; row < row_count; row++)
 					{
@@ -235,33 +237,51 @@ void GraphicEngine::drawGUI() {
 							}
 						}
 
+						Shape* temp = new Shape;
 
-						doc.SetRow<std::string>(
-							row, std::vector<std::string> {cmdVec[row], shapeVec[row], refVec[row],
-							std::to_string(offsetXVec[row]), std::to_string(offsetYVec[row]) });
+						temp->setcmd("place");
+						temp->setID(shapeVec[row]);
+						temp->set_ref_shape_id(refVec[row]);
+						temp->set_offset_x(offsetXVec[row]);
+						temp->set_offset_y(offsetYVec[row]);
 
-						doc.Save();
+						//keep the color same 
+						auto x = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
+						temp->setColor(x.getColor());
 
-						//std::cout << "current draw list size: " << _current_draw_list.size() << std::endl;
-						_current_draw_list.resize(0);
+						//calculate absolute coordinates
+						if (temp->get_ref_id() == "top") {
+							temp->setposX(temp->getoffsetX());
+							temp->setposY(temp->getoffsetY());
+						}
+						else {
+							//get coordinates of reference shape
+							int ref_x = ActiveShapeBuffer::get().shapePlacementMap[temp->get_ref_id()].getposX();
+							int ref_y = ActiveShapeBuffer::get().shapePlacementMap[temp->get_ref_id()].getposY();
+							temp->setposX(temp->getoffsetX() + ref_x);
+							temp->setposY(temp->getoffsetY() + ref_y);
+						}
+
+						//get & set the shape's area from the id-vs-area map
+						int area = ActiveShapeBuffer::get().shapeAreaMap[temp->getID()];
+						temp->setArea(area);
+
+						//calculate shape's side length from its area
+						temp->set_len_in_x(sqrt(temp->getArea()));
+						temp->set_len_in_y(sqrt(temp->getArea()));
+
+						/*
+						std::cout << "drawing: " << temp->getID() << "\n";
+						temp->show_data();
+						*/
+						//update values;
+						Shape& ss = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
+						ss = *temp;
+
 					}
-
 				}
-
 				ImGui::EndTable();
-				/*
-				if (ImGui::Button("Add 5 more")) {
-					row_count += 5;
-					cmdVec.resize(cmdVec.size() + 5);
-					shapeVec.resize(shapeVec.size() + 5);
-					refVec.resize(refVec.size() + 5);
-					offsetXVec.resize(offsetXVec.size() + 5);
-					offsetYVec.resize(offsetYVec.size() + 5);
-				}
-				*/
-
 			}
-
 			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			ImGui::End();
 		}
@@ -269,84 +289,58 @@ void GraphicEngine::drawGUI() {
 
 	//features
 	{
-		ImGui::Begin("Display Options");                          
-		ImGui::SliderFloat("Zoom", &this->_props.zoom, 0.0f, 2.0f);    
-		ImGui::SliderFloat("Move X", &this->_props.moveX, 100.0f, 500.0f);
-		ImGui::SliderFloat("Move Y", &this->_props.moveY, 100.0f, 500.0f);
+		ImGui::Begin("Display Options");
+		ImGui::SliderFloat("Zoom", &this->_props.zoom, 0.0f, 5.0f);
+		ImGui::SliderFloat("Move X", &this->_props.moveX, 100.0f, 1000.0f);
+		ImGui::SliderFloat("Move Y", &this->_props.moveY, 100.0f, 1000.0f);
 		ImGui::SliderFloat("Thickness", &this->_props.thickness, 1.0f, 2.0f);
 		ImGui::ShowStyleSelector("Color Theme##Selector");
 
 		//Multicolored
 		static int style_idx = -1;
-		if (ImGui::Combo("Shape Color##Selector", &style_idx, "MonoChrome\0Multicolored\0"))
-		{
-			switch (style_idx)
-			{
+		if (ImGui::Combo("Shape Color##Selector", &style_idx, "MonoChrome\0Multicolored\0")) {
+			switch (style_idx) {
 			case 0: _props.multicolored = false; break;
 			case 1: _props.multicolored = true; break;
 			}
-			
 		}
 
 		if (!_props.multicolored)
 			ImGui::ColorEdit4("Default Color", (float*)&_props.defaultColor);
 
-		// Display Keyboard/Mouse state
-		if (ImGui::TreeNode("Keyboard & Navigation State"))
-		{
-			ImGui::Text("Keys down:");          for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyDown(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X) (%.02f secs)", i, i, myio.KeysDownDuration[i]); }
-			ImGui::Text("Keys pressed:");       for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyPressed(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X)", i, i); }
-			ImGui::Text("Keys release:");       for (int i = 0; i < IM_ARRAYSIZE(myio.KeysDown); i++) if (ImGui::IsKeyReleased(i)) { ImGui::SameLine(); ImGui::Text("%d (0x%X)", i, i); }
-			ImGui::Text("Keys mods: %s%s%s%s", myio.KeyCtrl ? "CTRL " : "", myio.KeyShift ? "SHIFT " : "", myio.KeyAlt ? "ALT " : "", myio.KeySuper ? "SUPER " : "");
-			ImGui::Text("Chars queue:");        for (int i = 0; i < myio.InputQueueCharacters.Size; i++) { ImWchar c = myio.InputQueueCharacters[i]; ImGui::SameLine();  ImGui::Text("\'%c\' (0x%04X)", (c > ' ' && c <= 255) ? (char)c : '?', c); } // FIXME: We should convert 'c' to UTF-8 here but the functions are not public.
-
-			ImGui::Text("NavInputs down:");     for (int i = 0; i < IM_ARRAYSIZE(myio.NavInputs); i++) if (myio.NavInputs[i] > 0.0f) { ImGui::SameLine(); ImGui::Text("[%d] %.2f (%.02f secs)", i, myio.NavInputs[i], myio.NavInputsDownDuration[i]); }
-			ImGui::Text("NavInputs pressed:");  for (int i = 0; i < IM_ARRAYSIZE(myio.NavInputs); i++) if (myio.NavInputsDownDuration[i] == 0.0f) { ImGui::SameLine(); ImGui::Text("[%d]", i); }
-
-			ImGui::Button("Hovering me sets the\nkeyboard capture flag");
-			if (ImGui::IsItemHovered())
-				ImGui::CaptureKeyboardFromApp(true);
-			ImGui::SameLine();
-			ImGui::Button("Holding me clears the\nthe keyboard capture flag");
-			if (ImGui::IsItemActive())
-				ImGui::CaptureKeyboardFromApp(false);
-			ImGui::TreePop();
-		}
-		
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 	}
 
 	//Visualizer Window
 	{
-		auto visualizer_window_flags = ImGuiWindowFlags_AlwaysVerticalScrollbar | 
-				ImGuiWindowFlags_AlwaysHorizontalScrollbar;
+		auto visualizer_window_flags = ImGuiWindowFlags_AlwaysVerticalScrollbar |
+			ImGuiWindowFlags_AlwaysHorizontalScrollbar;
 
 		ImVec2 scrolling_child_size = ImVec2(0, ImGui::GetFrameHeightWithSpacing() * 7 + 30);
+		
 		ImGui::Begin("Visualizer Window", nullptr, visualizer_window_flags);
 		ImDrawList* draw_list = ImGui::GetWindowDrawList();
-		
 		ImGui::Text("Mouse Right: drag to scroll, click for context menu.");
 
 		//drawShape(draw_list);
 		for (auto x : ActiveShapeBuffer::get().shapePlacementMap) {
-			drawShape(x.second, draw_list, this->_props);
+			if (!x.second.getID().empty())
+				drawShape(x.second, draw_list, this->_props);
 		}
 	
 		ImGui::End();
 	}
 
-	//Legend
+		//Legend
 	if (this->_props.legend)
 	{
-		ImGui::Begin("Legend", &this->_props.legend);   
+		ImGui::Begin("Legend", &this->_props.legend);
 		if (ImGui::Button("Close"))
-		this->_props.legend = false;
+			this->_props.legend = false;
 		ImGui::End();
 	}
-
 	run++;
-	
 }
 
 
@@ -355,10 +349,10 @@ void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props 
 	/*
 	std::stringstream outputss;
 	std::fstream output_file("output.txt", std::ios::app);
-	outputss << "Currently drawing: " << drawable.getID() << std::endl;
+	outputss << "Currently drawing: " << drawable.getID() << "\n";
 	drawable.show_data(outputss);
 	output_file << outputss.str();
-	//std::cout << outputss.str() << std::endl;
+	//std::cout << outputss.str() << "\n";
 	*/
 
 	// vertices
@@ -476,52 +470,6 @@ void GraphicEngine::drawShape(Shape& drawable, ImDrawList *draw_list, vis_props 
 	);
 }
 
-
-/*
-void GraphicEngine::PopulateTable()
-{
-	
-	//cmd
-	for (auto i = 0; i < row_count; i++) cmdVec.push_back("place");
-
-	//shape
-	for (auto i = 0; i < row_count; i++) shapeVec.push_back(_current_draw_list[i]);
-
-	//ref
-	for (auto i = 0; i < row_count; i++) {
-		auto shape = _current_draw_list[i];
-		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-		refVec.push_back(x.get_ref_id());
-	}
-
-	//offsetX
-	for (auto i = 0; i < row_count; i++) {
-		auto shape = _current_draw_list[i];
-		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-		offsetXVec.push_back(x.getoffsetX());
-	}
-
-	//offsetY
-	for (auto i = 0; i < row_count; i++) {
-		auto shape = _current_draw_list[i];
-		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-		offsetYVec.push_back(x.getoffsetY());
-	}
-
-	unsigned int totalStrings = row_count * 3;
-	unsigned int totalInts = row_count * 2;
-
-	for (int elem = 0; elem < totalStrings; elem++)
-	{
-		dummyStrings.push_back(std::string(""));
-	}
-	for (int elem = 0; elem < totalInts; elem++)
-	{
-		dummyNums.push_back(int());
-	}
-}
-*/
-
 void GraphicEngine::render()
 {
 	//Editor Rendering
@@ -548,9 +496,18 @@ void GraphicEngine::handleEvents()
 }
 
 void GraphicEngine::quit() {
-	std::cout << "Shutting down GraphicEngine..." << std::endl;
+	std::cout << "Shutting down GraphicEngine..." << "\n";
 	_is_running= false;
 	_is_running = false;
+
+	/* log output */
+	std::fstream file("output.txt", std::ios::out);
+
+	for (int i = 0; i < row_count; i++) {
+		std::string shape = "shape_" + std::to_string(i);
+		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+		file << shape << " : (" << x.getposX() << ", " << x.getposY() << ")\n";
+	}
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL2_Shutdown();

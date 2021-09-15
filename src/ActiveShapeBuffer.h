@@ -8,6 +8,7 @@ class ActiveShapeBuffer
 public:
 	//return singleton instance
 	static ActiveShapeBuffer& get();
+	static bool loadFiles(const std::string areaFilePath, const std::string placementFilePath);
 
 private:
 	ActiveShapeBuffer();

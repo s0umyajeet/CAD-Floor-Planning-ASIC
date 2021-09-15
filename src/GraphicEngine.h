@@ -55,7 +55,7 @@ public:
 	void handleEvents();
 	void drawGUI();
 	void drawShape(Shape& drawable, ImDrawList *draw_list, vis_props props);
-
+	std::string constructShapeIDFromShapeName(std::string str);
 	inline bool isRunning() { return this->_is_running; }
 	void quit();
 
