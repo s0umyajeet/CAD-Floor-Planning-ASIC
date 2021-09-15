@@ -39,6 +39,7 @@ void engine() {
 	while (GraphicEngine::get().isRunning()) {
 		//non-blocking lock
 		if (m.try_lock()) {
+			std::cout << "thread 2" << std::endl;
 			int start = SDL_GetTicks();
 			GraphicEngine::get().drawGUI();
 			GraphicEngine::get().render();
@@ -57,20 +58,10 @@ void engine() {
 
 
 void parser() {
-	//producer producing shape data
-	using namespace std::literals::chrono_literals;
 
-	//parse shapes.csv && update the shapeID-vs-area table (once)
-	InputHandler::get().parseShapeCSV(ActiveShapeBuffer::get().areaFile);
-
-	//first parse
-	GraphicEngine::row_count = InputHandler::get().parsePlacementCSV(ActiveShapeBuffer::get().placementFile);
-	std::cout << "grpahicccc count" << GraphicEngine::row_count << std::endl;
-	GraphicEngine::firstParse = true;
-	
 	while (GraphicEngine::get().isRunning()) {
 		if (m.try_lock()) {
-			//std::cout << "running" << std::endl;
+			std::cout << "thread 1" << std::endl;
 			ActiveShapeBuffer::placementFile = rapidcsv::Document("E:/Dev/C++ Projects/iHack-CAD-2021/iHack-CAD-2021/src/placement.csv", rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams(' '));
 			InputHandler::get().parsePlacementCSV(ActiveShapeBuffer::get().placementFile);
 			m.unlock();
@@ -80,18 +71,30 @@ void parser() {
 }
 
 int main(int argc, char* argv[]) {
-	std::thread producer(parser);
-	engine();
-	producer.join();
+
+	//parse shapes.csv && update the shapeID-vs-area table (once)
+	InputHandler::get().parseShapeCSV(ActiveShapeBuffer::get().areaFile);
+
+	//first parse
+	GraphicEngine::row_count = InputHandler::get().parsePlacementCSV(ActiveShapeBuffer::get().placementFile);
+	std::cout << "grpahicccc count " << GraphicEngine::row_count << std::endl;
+	GraphicEngine::firstParse = true;
+	GraphicEngine::parseCount++;
+
+
+	if (GraphicEngine::firstParse) {
+		std::thread producer(parser);
+		engine();
+		producer.join();
+	}
 
 	/* log output */
 	std::fstream file("output.txt", std::ios::app);
 
-	for (int i = 1; i <= GraphicEngine::row_count; i++) {
+	for (int i = 0; i < GraphicEngine::row_count; i++) {
 		std::string shape = "shape_" + std::to_string(i);
 		auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];		
 		file << shape << " : (" << x.getposX() << ", " << x.getposY() << ")\n";
-
 	}
 
 	return 0;

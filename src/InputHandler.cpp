@@ -24,11 +24,6 @@ int InputHandler::parseShapeCSV(rapidcsv::Document doc) {
         std::vector <std::string> this_row = doc.GetRow<std::string>(i);
         ActiveShapeBuffer::get().shapeAreaMap.insert({ this_row[0], stoi(this_row[1]) });
     }
-
-    //debug
-    for (auto x : ActiveShapeBuffer::get().shapeAreaMap) {
-        std::cout << x.first << " " << x.second << std::endl;
-    }
     return row_count;
 }
 
@@ -48,7 +43,7 @@ int InputHandler::parsePlacementCSV(rapidcsv::Document doc) {
         temp->set_offset_x(stoi(this_row[3]));
         temp->set_offset_y(stoi(this_row[4]));
 
-        if (!GraphicEngine::get().firstParse) {
+        if (GraphicEngine::parseCount > 0) {
                 auto x = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
                 temp->setColor(x.getColor());
         }
@@ -74,20 +69,19 @@ int InputHandler::parsePlacementCSV(rapidcsv::Document doc) {
         temp->set_len_in_x(sqrt(temp->getArea()));
         temp->set_len_in_y(sqrt(temp->getArea()));
 
-        //finally update the placement map
+
         //optimize
-        if (GraphicEngine::firstParse) {
+        if (GraphicEngine::parseCount == 0) {
                 ActiveShapeBuffer::get().shapePlacementMap.insert({ temp->getID(), *temp });
-                GraphicEngine::firstParse = false;
         }
         else {
                 //update values;
                 Shape& x = ActiveShapeBuffer::get().shapePlacementMap[temp->getID()];
                 x = *temp;
         }
-
         GraphicEngine::get()._current_draw_list.push_back(temp->getID());
     }
-
+    
+    GraphicEngine::parseCount++;
     return row_count;
 }

@@ -21,6 +21,7 @@
 bool GraphicEngine::firstParse = false;
 int GraphicEngine::col_count = 0;
 int GraphicEngine::row_count = 0;
+int GraphicEngine::parseCount = 0;
 ImVec4 vis_props::defaultColor = ImVec4(0.45f, 255.0f, 0.60f, 255.0f);
 bool vis_props::multicolored = true;
 
@@ -89,7 +90,7 @@ bool GraphicEngine::init(window_props editor) {
 		);
 
 		if (_window) {
-			std::cout << "running running running" << std::endl;
+			//std::cout << "running running running" << std::endl;
 			_gl_context = SDL_GL_CreateContext(_window);
 			SDL_GL_MakeCurrent(_window, _gl_context);
 			SDL_GL_SetSwapInterval(1); // Enable vsync
@@ -135,133 +136,135 @@ void GraphicEngine::drawGUI() {
 
 	//Show input window
 	{
-		static float f = 0.0f;
-		static int row_count = GraphicEngine::row_count;
+		if (GraphicEngine::firstParse) {
+			static float f = 0.0f;
+			static int row_count = GraphicEngine::row_count;
 
-		ImGui::Begin("Editor Window"); 
+			ImGui::Begin("Editor Window");
 
-		static ImGuiTableFlags flags = ImGuiTableFlags_Resizable | 
-			ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | 
-			ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
+			static ImGuiTableFlags flags = ImGuiTableFlags_Resizable |
+				ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable |
+				ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV;
 
-		static std::vector <std::string> cmdVec;
-		static std::vector <std::string> shapeVec;
-		static std::vector <std::string> refVec;
-		static std::vector <int>	 offsetXVec;
-		static std::vector <int>	 offsetYVec;
-		
+			static std::vector <std::string> cmdVec;
+			static std::vector <std::string> shapeVec;
+			static std::vector <std::string> refVec;
+			static std::vector <int>	 offsetXVec;
+			static std::vector <int>	 offsetYVec;
 
-		if (ImGui::BeginTable("table1", 5, flags))
-		{
-			ImGui::TableSetupColumn("cmd");
-			ImGui::TableSetupColumn("Shape Name");
-			ImGui::TableSetupColumn("Reference Shape");
-			ImGui::TableSetupColumn("Pos X");
-			ImGui::TableSetupColumn("Pos Y");
-			ImGui::TableHeadersRow();
 
-			if (run == 0) {
-				//populate table fields with existing inputs
+			if (ImGui::BeginTable("table1", 5, flags))
+			{
+				ImGui::TableSetupColumn("cmd");
+				ImGui::TableSetupColumn("Shape Name");
+				ImGui::TableSetupColumn("Reference Shape");
+				ImGui::TableSetupColumn("Pos X");
+				ImGui::TableSetupColumn("Pos Y");
+				ImGui::TableHeadersRow();
 
-				//cmd
-				for (auto i = 0; i < row_count; i++) cmdVec.push_back("place");
+				if (run == 0) {
+					//populate table fields with existing inputs
 
-				//shape
-				for (auto i = 0; i < row_count; i++) shapeVec.push_back(_current_draw_list[i]);
+					//cmd
+					for (auto i = 0; i < row_count; i++) cmdVec.push_back("place");
 
-				//ref
-				for (auto i = 0; i < row_count; i++) {
-					auto shape = _current_draw_list[i];
-					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-					refVec.push_back(x.get_ref_id());
-				}
+					//shape
+					for (auto i = 0; i < row_count; i++) shapeVec.push_back(_current_draw_list[i]);
 
-				//offsetX
-				for (auto i = 0; i < row_count; i++) {
-					auto shape = _current_draw_list[i];
-					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-					offsetXVec.push_back(x.getoffsetX());
-				}
-
-				//offsetY
-				for (auto i = 0; i < row_count; i++) {
-					auto shape = _current_draw_list[i];
-					auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
-					offsetYVec.push_back(x.getoffsetY());
-				}
-
-			}
-
-			int pos_x = 0, pos_y = 0;
-
-			
-			rapidcsv::Document doc = ActiveShapeBuffer::get().placementFile;
-
-			if (run > 0) {
-				for (int row = 0; row < row_count; row++)
-				{
-					ImGui::TableNextRow();
-					for (int column = 0; column < 5; column++)
-					{
-						ImGui::TableSetColumnIndex(column);
-						switch (column) {
-						case 0:
-							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &cmdVec[row]);
-							ImGui::PopID();
-							break;
-						case 1:
-							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &shapeVec[row]);
-							ImGui::PopID();
-							break;
-						case 2:
-							ImGui::PushID(column + row * 10);
-							ImGui::InputText("##label", &refVec[row]);
-							ImGui::PopID();
-							break;
-						case 3:
-							ImGui::PushID(column + row * 10);
-							ImGui::InputInt("##label", &offsetXVec[row]);
-							ImGui::PopID();
-							break;
-						case 4:
-							ImGui::PushID(column + row * 10);
-							ImGui::InputInt("##label", &offsetYVec[row]);
-							ImGui::PopID();
-							break;
-						}
+					//ref
+					for (auto i = 0; i < row_count; i++) {
+						auto shape = _current_draw_list[i];
+						auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+						refVec.push_back(x.get_ref_id());
 					}
 
-					
-					doc.SetRow<std::string>(
-						row, std::vector<std::string> {cmdVec[row], shapeVec[row], refVec[row],
-						std::to_string(offsetXVec[row]), std::to_string(offsetYVec[row]) });
-					
-					doc.Save();
+					//offsetX
+					for (auto i = 0; i < row_count; i++) {
+						auto shape = _current_draw_list[i];
+						auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+						offsetXVec.push_back(x.getoffsetX());
+					}
 
-					//std::cout << "current draw list size: " << _current_draw_list.size() << std::endl;
-					_current_draw_list.resize(0);
+					//offsetY
+					for (auto i = 0; i < row_count; i++) {
+						auto shape = _current_draw_list[i];
+						auto x = ActiveShapeBuffer::get().shapePlacementMap[shape];
+						offsetYVec.push_back(x.getoffsetY());
+					}
+
 				}
-						
-			}
-			
-			ImGui::EndTable();
-			/*
-			if (ImGui::Button("Add 5 more")) {
-				row_count += 5;
-				cmdVec.resize(cmdVec.size() + 5);
-				shapeVec.resize(shapeVec.size() + 5);
-				refVec.resize(refVec.size() + 5);
-				offsetXVec.resize(offsetXVec.size() + 5);
-				offsetYVec.resize(offsetYVec.size() + 5);
-			}
-			*/
-				
-		}
 
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-		ImGui::End();
+				int pos_x = 0, pos_y = 0;
+
+
+				rapidcsv::Document doc = ActiveShapeBuffer::get().placementFile;
+
+				if (run > 0) {
+					for (int row = 0; row < row_count; row++)
+					{
+						ImGui::TableNextRow();
+						for (int column = 0; column < 5; column++)
+						{
+							ImGui::TableSetColumnIndex(column);
+							switch (column) {
+							case 0:
+								ImGui::PushID(column + row * 10);
+								ImGui::InputText("##label", &cmdVec[row]);
+								ImGui::PopID();
+								break;
+							case 1:
+								ImGui::PushID(column + row * 10);
+								ImGui::InputText("##label", &shapeVec[row]);
+								ImGui::PopID();
+								break;
+							case 2:
+								ImGui::PushID(column + row * 10);
+								ImGui::InputText("##label", &refVec[row]);
+								ImGui::PopID();
+								break;
+							case 3:
+								ImGui::PushID(column + row * 10);
+								ImGui::InputInt("##label", &offsetXVec[row]);
+								ImGui::PopID();
+								break;
+							case 4:
+								ImGui::PushID(column + row * 10);
+								ImGui::InputInt("##label", &offsetYVec[row]);
+								ImGui::PopID();
+								break;
+							}
+						}
+
+
+						doc.SetRow<std::string>(
+							row, std::vector<std::string> {cmdVec[row], shapeVec[row], refVec[row],
+							std::to_string(offsetXVec[row]), std::to_string(offsetYVec[row]) });
+
+						doc.Save();
+
+						//std::cout << "current draw list size: " << _current_draw_list.size() << std::endl;
+						_current_draw_list.resize(0);
+					}
+
+				}
+
+				ImGui::EndTable();
+				/*
+				if (ImGui::Button("Add 5 more")) {
+					row_count += 5;
+					cmdVec.resize(cmdVec.size() + 5);
+					shapeVec.resize(shapeVec.size() + 5);
+					refVec.resize(refVec.size() + 5);
+					offsetXVec.resize(offsetXVec.size() + 5);
+					offsetYVec.resize(offsetYVec.size() + 5);
+				}
+				*/
+
+			}
+
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			ImGui::End();
+		}
 	}
 
 	//features
@@ -336,12 +339,7 @@ void GraphicEngine::drawGUI() {
 	//Legend
 	if (this->_props.legend)
 	{
-		ImGui::Begin("Legend", &this->_props.legend);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-		/*
-		for (auto x : _current_draw_list) {
-			//ImGui::TextColored(, "Shape 1");
-		} 
-		*/
+		ImGui::Begin("Legend", &this->_props.legend);   
 		if (ImGui::Button("Close"))
 		this->_props.legend = false;
 		ImGui::End();
