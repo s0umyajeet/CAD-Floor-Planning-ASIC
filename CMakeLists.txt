@@ -22,9 +22,9 @@ target_sources(imgui PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imgui.h"
 					 PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui/imstb_truetype.h")
 					 
 target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui"
-								 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/sdl/include")
+								 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/SDL2/include")
 
-target_link_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/sdl/lib")
+target_link_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/deps/SDL2/lib/x86")
 
 target_link_libraries(imgui PUBLIC SDL2.lib
 							PUBLIC SDL2main.lib
@@ -47,4 +47,4 @@ target_sources(visualizer PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/ActiveShapeBu
 						  
 target_include_directories(visualizer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(visualizer PUBLIC imgui)
-add_custom_command(TARGET visualizer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/deps/sdl/lib/SDL2.dll" "${CMAKE_CURRENT_BINARY_DIR}")
+add_custom_command(TARGET visualizer POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/deps/SDL2/lib/x86/SDL2.dll" "${CMAKE_CURRENT_BINARY_DIR}")
